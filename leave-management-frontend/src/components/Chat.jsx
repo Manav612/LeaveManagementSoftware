@@ -1,9 +1,6 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
-import { useAuth } from "../context/AuthContext";
-import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Loader from "../components/Loader";
-import { motion } from "framer-motion";
 
 // Separate Chat Component
 export const ChatComponent = ({ leaveId, user, onClose }) => {
@@ -41,6 +38,8 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
             headers: { Authorization: `Bearer ${user.token}` },
           }
         );
+        console.log("Fetched messages:", messagesResponse.data);
+
         setMessages(messagesResponse.data || []);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -67,6 +66,8 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
           headers: { Authorization: `Bearer ${user.token}` },
         }
       );
+      console.log("Message sent:", response.data);
+
       setMessages([...messages, response.data]);
       setNewMessage("");
     } catch (error) {
@@ -74,20 +75,53 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
     }
   };
 
+  // Function to format time
+  const formatTime = (dateString) => {
+    return new Date(dateString).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   if (loading) return <Loader />;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto overflow-hidden bg-white rounded-lg shadow-lg">
       {/* Chat Header */}
       <div className="bg-[#006A71] text-white p-4 flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Leave Discussion</h2>
+        <div className="flex items-center">
+          <div className="flex items-center justify-center w-10 h-10 mr-3 text-white rounded-full bg-white/20">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold">Leave Discussion</h2>
+            {leaveDetails && (
+              <p className="text-sm text-white/80">
+                {leaveDetails.employeeName || "Employee"}'s Leave Request
+              </p>
+            )}
+          </div>
+        </div>
         <button
           onClick={onClose}
-          className="text-white hover:text-gray-200 transition-colors"
+          className="text-white transition-colors hover:text-gray-200"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -104,8 +138,8 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
 
       {/* Leave Details Card */}
       {leaveDetails && (
-        <div className="bg-gray-50 p-4 border-b">
-          <div className="flex justify-between items-start">
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex items-start justify-between">
             <div>
               <h3 className="font-medium text-gray-800">Leave Request</h3>
               <p className="text-sm text-gray-600">
@@ -156,48 +190,83 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
       )}
 
       {/* Messages Area */}
-      <div className="h-80 overflow-y-auto p-4 bg-gray-50">
+      <div className="p-4 overflow-y-auto h-80 bg-[#e5ded8]">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-center text-gray-500">
-              No messages yet. Start the conversation!
-            </p>
-          </div>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg._id}
-              className={`mb-3 max-w-[80%] ${
-                msg.sender === user._id
-                  ? "ml-auto bg-[#006A71] text-white"
-                  : "bg-white border border-gray-200 text-gray-800"
-              } p-3 rounded-lg shadow-sm`}
-            >
-              <p className="text-sm">{msg.content}</p>
-              <p
-                className={`text-xs mt-1 ${
-                  msg.sender === user._id ? "text-gray-200" : "text-gray-500"
-                }`}
+            <div className="p-6 text-center text-gray-500 bg-white rounded-lg shadow-sm">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-12 h-12 mx-auto mb-3 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                {new Date(msg.createdAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+                />
+              </svg>
+              <p className="text-lg font-medium">No messages yet</p>
+              <p className="mt-1 text-sm">
+                Start the conversation about this leave request!
               </p>
             </div>
-          ))
+          </div>
+        ) : (
+          messages.map((msg, index) => {
+            const isCurrentUser = msg.sender._id === user._id;
+            const showSenderInfo =
+              index === 0 || messages[index - 1].sender._id !== msg.sender._id;
+
+            return (
+              <div key={msg._id} className="mb-3">
+                {showSenderInfo && (
+                  <div
+                    className={`text-xs text-gray-600 mb-1 ${
+                      isCurrentUser ? "text-right mr-2" : "ml-2"
+                    }`}
+                  >
+                    👨🏻‍💻 {isCurrentUser ? "You" : msg.sender.name}
+                  </div>
+                )}
+                <div
+                  className={`flex ${
+                    isCurrentUser ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-lg shadow-sm ${
+                      isCurrentUser
+                        ? "bg-[#dcf8c6] text-gray-800"
+                        : "bg-white text-gray-800"
+                    }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                    <p className="mt-1 text-xs text-right text-gray-500">
+                      {formatTime(msg.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
-      <form onSubmit={sendMessage} className="p-3 bg-white border-t flex gap-2">
+      <form
+        onSubmit={sendMessage}
+        className="flex gap-2 p-3 bg-[#f0f0f0] border-t"
+      >
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#006A71]"
+          className="flex-1 border-none rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#006A71] shadow-sm"
         />
         <button
           type="submit"
@@ -205,7 +274,7 @@ export const ChatComponent = ({ leaveId, user, onClose }) => {
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
+            className="w-5 h-5"
             viewBox="0 0 20 20"
             fill="currentColor"
           >
